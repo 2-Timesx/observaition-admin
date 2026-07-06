@@ -172,6 +172,7 @@ async function refreshUsers() {
         <th>License</th>
         <th>Expires</th>
         <th>Status</th>
+        <th style="min-width:140px;">Extend</th>
         <th>Actions</th>
       </tr></thead><tbody>`;
 
@@ -209,6 +210,13 @@ async function refreshUsers() {
         <td>${typeLabel}</td>
         <td>${expiresLabel}</td>
         <td>${statusHtml}</td>
+        <td>
+          ${lic && lic.active && lic.type !== 'lifetime' ? `
+            <button class="btn-small" style="background:#e65100;color:#fff;margin:2px;" onclick="extendLicense('${u.discord_id}',1)">+1d</button>
+            <button class="btn-small" style="background:#e65100;color:#fff;margin:2px;" onclick="extendLicense('${u.discord_id}',3)">+3d</button>
+            <button class="btn-small" style="background:#e65100;color:#fff;margin:2px;" onclick="extendLicense('${u.discord_id}',7)">+7d</button>
+          ` : '—'}
+        </td>
         <td>
           <button class="btn-small btn-hwid" onclick="resetHwid('${u.discord_id}')">Reset HWID</button>
           ${lic && lic.active ? `<button class="btn-small btn-revoke" onclick="revokeLicense('${u.discord_id}')">Revoke</button>` : ''}
@@ -267,6 +275,19 @@ async function revokeLicense(discordId) {
       p_password: adminPassword
     });
     if (result.success) { toast('License revoked'); refreshUsers(); }
+    else { toast(result.error, true); }
+  } catch (e) { toast(e.message, true); }
+}
+
+async function extendLicense(discordId, days) {
+  if (!confirm(`Add ${days} day${days > 1 ? 's' : ''} to ${discordId}?`)) return;
+  try {
+    const result = await rpc('extend_license_admin', {
+      p_discord_id: discordId,
+      p_days: days,
+      p_password: adminPassword
+    });
+    if (result.success) { toast(`Added ${days} day(s)`); refreshUsers(); }
     else { toast(result.error, true); }
   } catch (e) { toast(e.message, true); }
 }
