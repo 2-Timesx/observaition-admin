@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ObservAItion Admin</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #111; color: #eee; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #1a1a2e, #16213e); border-bottom: 2px solid #f57c00; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { color: #f57c00; font-size: 20px; letter-spacing: 1px; }
+.header span { color: #888; font-size: 13px; }
+.login-screen { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+.login-box { background: #1e1e1e; padding: 40px; border-radius: 8px; border: 1px solid #333; width: 340px; }
+.login-box h2 { color: #f57c00; margin-bottom: 24px; text-align: center; }
+.login-box input { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: #eee; border-radius: 4px; margin-bottom: 16px; font-size: 14px; }
+.login-box button { width: 100%; padding: 10px; background: #f57c00; border: none; color: #111; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; }
+.login-box button:hover { background: #ff9800; }
+.login-box .error { color: #f44336; font-size: 13px; text-align: center; margin-top: 8px; }
+.dashboard { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
+.actions { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.action-card { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 20px; flex: 1; min-width: 280px; }
+.action-card h3 { color: #f57c00; font-size: 15px; margin-bottom: 12px; }
+.action-card select, .action-card input { width: 100%; padding: 8px; background: #2a2a2a; border: 1px solid #444; color: #eee; border-radius: 4px; margin-bottom: 8px; font-size: 13px; }
+.action-card button { padding: 8px 16px; background: #f57c00; border: none; color: #111; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.action-card button:hover { background: #ff9800; }
+.action-card .small-note { color: #666; font-size: 11px; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 8px; overflow: hidden; }
+th { background: #2a2a2a; color: #f57c00; padding: 10px 12px; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 2px solid #333; }
+td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #2a2a2a; }
+tr:hover { background: #252525; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-active { background: #1b5e20; color: #81c784; }
+.status-expired { background: #4a1a1a; color: #ef9a9a; }
+.status-revoked { background: #3e2723; color: #bcaaa4; }
+.status-lifetime { background: #1a237e; color: #9fa8da; }
+.status-none { background: #333; color: #999; }
+.btn-small { padding: 4px 10px; font-size: 11px; cursor: pointer; border: none; border-radius: 3px; font-weight: 600; margin-right: 4px; }
+.btn-hwid { background: #1565c0; color: #fff; }
+.btn-hwid:hover { background: #1976d2; }
+.btn-revoke { background: #c62828; color: #fff; }
+.btn-revoke:hover { background: #e53935; }
+.loading { text-align: center; padding: 40px; color: #666; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1b5e20; color: #81c784; padding: 12px 20px; border-radius: 4px; font-size: 13px; display: none; z-index: 999; animation: fadeIn 0.3s; }
+.toast.error { background: #4a1a1a; color: #ef9a9a; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.copyable { cursor: pointer; color: #64b5f6; }
+.copyable:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>OBSERVAITION ADMIN</h1>
+  <span id="loginStatus"></span>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h2>Admin Login</h2>
+    <input type="password" id="passwordInput" placeholder="Admin password" onkeydown="if(event.key==='Enter') login()">
+    <button onclick="login()">Login</button>
+    <div class="error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+
+  <div class="actions">
+    <div class="action-card">
+      <h3>Add License</h3>
+      <input type="text" id="newDiscordId" placeholder="Discord ID (numbers)" onkeydown="if(event.key==='Enter') addLicense()">
+      <select id="licenseType">
+        <option value="1d">1 Day</option>
+        <option value="7d">1 Week</option>
+        <option value="30d">1 Month</option>
+        <option value="90d">3 Months</option>
+        <option value="lifetime">Lifetime</option>
+      </select>
+      <button onclick="addLicense()">Generate License</button>
+      <div class="small-note">User enters this Discord ID on first launch.</div>
+    </div>
+    <div class="action-card">
+      <h3>Quick Actions</h3>
+      <p style="font-size:13px;color:#888;margin-bottom:8px;">Select a user from the table and use the buttons in the Actions column.</p>
+      <button onclick="refreshUsers()" style="background:#333;color:#eee;">Refresh Table</button>
+    </div>
+  </div>
+
+  <div id="tableContainer">
+    <div class="loading">Loading users...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="notice" style="display:none;background:#1e1e1e;border:1px solid #f57c00;border-radius:4px;padding:10px 16px;margin:8px 24px;font-size:12px;color:#f57c00;" id="fileNotice">WARNING: Opened from <code>file://</code>. Browsers block network requests on local files — serve this via <code>python -m http.server</code> or GitHub Pages.</div>
+<script>
+  if (location.protocol === 'file:') document.getElementById('fileNotice').style.display = 'block';
+</script>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// CONFIG — Fill in your Supabase project details
+// ============================================================
+const SUPABASE_URL = 'https://xqdppqfjnlcxermrxgwr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxZHBwcWZqbmxjeGVybXJ4Z3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMjAzMTksImV4cCI6MjA5ODg5NjMxOX0.2jeHHmjQraUzUSs4mglh7_WrGsQUs1G_sMxtKRkEJBs';
+
+// Use _sbClient to avoid naming conflict with the UMD global
+const _sbClient = (typeof supabase !== 'undefined' ? supabase : window.supabase).createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let adminPassword = '';
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+async function rpc(name, params) {
+  const { data, error } = await _sbClient.rpc(name, params);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function login() {
+  const pw = document.getElementById('passwordInput').value;
+  if (!pw) { document.getElementById('loginError').textContent = 'Enter password'; return; }
+  adminPassword = pw;
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('loginStatus').textContent = 'Logged in';
+  refreshUsers();
+}
+
+function logout() {
+  adminPassword = '';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginStatus').textContent = '';
+  document.getElementById('passwordInput').value = '';
+}
+
+async function refreshUsers() {
+  const container = document.getElementById('tableContainer');
+  container.innerHTML = '<div class="loading">Loading users...</div>';
+
+  try {
+    const result = await rpc('list_users_admin', { p_password: adminPassword });
+
+    if (!result.success) {
+      container.innerHTML = `<div class="loading" style="color:#f44336;">Login failed — wrong password?</div>`;
+      return;
+    }
+
+    const users = result.users || [];
+
+    if (users.length === 0) {
+      container.innerHTML = '<div class="loading">No users yet — add a license to get started.</div>';
+      return;
+    }
+
+    let html = `<table>
+      <thead><tr>
+        <th>Discord ID</th>
+        <th>HWID</th>
+        <th>License</th>
+        <th>Expires</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr></thead><tbody>`;
+
+    for (const u of users) {
+      const lic = u.license;
+      let statusHtml, typeLabel, expiresLabel;
+
+      if (!lic) {
+        statusHtml = '<span class="status-badge status-none">None</span>';
+        typeLabel = '—';
+        expiresLabel = '—';
+      } else if (lic.type === 'lifetime' && lic.active) {
+        statusHtml = '<span class="status-badge status-lifetime">Lifetime</span>';
+        typeLabel = 'Lifetime';
+        expiresLabel = 'Never';
+      } else if (!lic.active) {
+        statusHtml = '<span class="status-badge status-revoked">Revoked</span>';
+        typeLabel = lic.type;
+        expiresLabel = lic.expires_at ? new Date(lic.expires_at).toLocaleDateString() : '—';
+      } else if (lic.expires_at && new Date(lic.expires_at) < new Date()) {
+        statusHtml = '<span class="status-badge status-expired">Expired</span>';
+        typeLabel = lic.type;
+        expiresLabel = new Date(lic.expires_at).toLocaleDateString();
+      } else {
+        statusHtml = '<span class="status-badge status-active">Active</span>';
+        typeLabel = lic.type;
+        expiresLabel = lic.expires_at ? new Date(lic.expires_at).toLocaleDateString() : '—';
+      }
+
+      const hwidDisplay = u.hwid ? `<span class="copyable" onclick="copyText('${u.hwid}')" title="Click to copy">${u.hwid.substring(0, 12)}...</span>` : '<span style="color:#666;">Not set</span>';
+
+      html += `<tr>
+        <td><span class="copyable" onclick="copyText('${u.discord_id}')" title="Click to copy">${u.discord_id}</span></td>
+        <td>${hwidDisplay}</td>
+        <td>${typeLabel}</td>
+        <td>${expiresLabel}</td>
+        <td>${statusHtml}</td>
+        <td>
+          <button class="btn-small btn-hwid" onclick="resetHwid('${u.discord_id}')">Reset HWID</button>
+          ${lic && lic.active ? `<button class="btn-small btn-revoke" onclick="revokeLicense('${u.discord_id}')">Revoke</button>` : ''}
+        </td>
+      </tr>`;
+    }
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="loading" style="color:#f44336;">Error: ${e.message}</div>`;
+  }
+}
+
+async function addLicense() {
+  const discordId = document.getElementById('newDiscordId').value.trim();
+  const type = document.getElementById('licenseType').value;
+  if (!discordId) { toast('Enter a Discord ID', true); return; }
+
+  try {
+    const result = await rpc('add_license_admin', {
+      p_discord_id: discordId,
+      p_type: type,
+      p_password: adminPassword
+    });
+
+    if (result.success) {
+      toast(`License (${type}) added for ${discordId}`);
+      document.getElementById('newDiscordId').value = '';
+      refreshUsers();
+    } else {
+      toast(result.error || 'Failed', true);
+    }
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function resetHwid(discordId) {
+  if (!confirm(`Reset HWID for ${discordId}?`)) return;
+  try {
+    const result = await rpc('reset_hwid_admin', {
+      p_discord_id: discordId,
+      p_password: adminPassword
+    });
+    if (result.success) { toast('HWID reset'); refreshUsers(); }
+    else { toast(result.error, true); }
+  } catch (e) { toast(e.message, true); }
+}
+
+async function revokeLicense(discordId) {
+  if (!confirm(`Revoke license for ${discordId}?`)) return;
+  try {
+    const result = await rpc('revoke_license_admin', {
+      p_discord_id: discordId,
+      p_password: adminPassword
+    });
+    if (result.success) { toast('License revoked'); refreshUsers(); }
+    else { toast(result.error, true); }
+  } catch (e) { toast(e.message, true); }
+}
+
+function copyText(t) {
+  navigator.clipboard.writeText(t).then(() => toast('Copied!'));
+}
+</script>
+</body>
+</html>
